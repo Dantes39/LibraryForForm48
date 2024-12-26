@@ -1,0 +1,26 @@
+@startuml
+class CPU {
+  - string Brand
+  - string Model
+  - int CoreCount
+  - int ThreadCount
+  - double BaseClock
+  - double MaxClock
+  - string SocketType
+  - string Condition
+  + string GetInfo()
+  + CPU(string brand, string model, int coreCount, int threadCount, double baseClock, double maxClock, string socketType, string condition)
+}
+
+class RAM {
+  - string Brand
+  - int Capacity
+  - int Frequency
+  - string Type
+  - string Cpu
+  + string GetInfo()
+  + RAM(string brand, int capacity, int frequency, string type, string cpu)
+}
+
+CPU --|> RAM : "Uses"
+@enduml
