@@ -18,16 +18,16 @@ namespace LibraryForForm48
         string GetInfo();
     }
 
-    // Интерфейс, который будет реализован классами, представляющими устройства
-    public interface IDevice
+    // Интерфейс представляющий объект использующий память
+    public interface IMemoryDevice
     {
-        // Метод для получения информации о конкретном устройстве
+        int Capacity { get; set; } // Размер памяти в ГБ
+        int BusyMemory { get; set; }
+        int CacheMemory { get; set; }
 
-        // Общие свойства для всех устройств
-        string Brand { get; set; } // Производитель
-        string Model { get; set; } // Модель
-        string SerialNumber { get; set; } // Серийный номер
-        string Condition { get; set; } // Состояние
+        void FileSaving(int capacityFile); // Метод сохранения файла на устройство
+        void FileDelete(int capacityFile); // Метод удаления файла на устройстве
+        void CleanCache(); // Метод очистки кеша на устройстве
     }
 
 
@@ -59,7 +59,7 @@ namespace LibraryForForm48
             PowerSupply = powerSupply;
 
             // Создаем кулер с передачей устройств
-            Cooler = new Cooler("CoolerMaster", "Hyper 212", "CoolerMaster Hyper 212", serialNumber + "_Cooler", cpu, gpu, ram);
+            Cooler = new Cooler("CoolerMaster", "Hyper 212", serialNumber + "_Cooler", cpu, gpu, ram);
         }
 
         public string GetInfo()
@@ -77,7 +77,7 @@ namespace LibraryForForm48
             return info.ToString();
         }
 
-        public string ToString()
+        public new string ToString()
         {
             return GetInfo();
         }
@@ -105,7 +105,7 @@ namespace LibraryForForm48
 
 
     // Базовый класс для всех устройств
-    public abstract class Device : IDevice, IFormObject
+    public abstract class Device : IFormObject
     {
         // Общие поля для всех устройств
         public string Brand { get; set; } // Производитель
@@ -252,12 +252,14 @@ namespace LibraryForForm48
 
     // Класс для оперативной памяти
     // Класс для оперативной памяти
-    public class RAM : Device
+    public class RAM : Device, IMemoryDevice
     {
         public int Capacity { get; set; } // Объем в ГБ
         public int Frequency { get; set; } // Частота в МГц
         public string Type { get; set; } // Тип (например, DDR4, DDR5)
         public string Cpu { get; set; } // Тип поддерживаемого процессора
+        public int BusyMemory { get; set; }
+        public int CacheMemory { get; set; }
 
         // Конструктор для RAM
         public RAM(string brand, string model, int capacity, int frequency, string type, string cpu,
@@ -271,6 +273,9 @@ namespace LibraryForForm48
             Cpu = cpu;
             Condition = condition;
             SerialNumber = serialNumber;
+            Random rn = new Random();
+            CacheMemory = rn.Next(0, Capacity / 10);
+            BusyMemory = CacheMemory;
         }
 
         public RAM() { }
@@ -286,17 +291,60 @@ namespace LibraryForForm48
         {
             return GetInfo();
         }
+
+        public void FileSaving(int capacityFile) // Метод сохранения файла на устройство
+        {
+            if (BusyMemory < Capacity && Capacity - BusyMemory >= capacityFile)
+            {
+                BusyMemory += capacityFile;
+                if (BusyMemory < Capacity)
+                {
+                    int availableSpace = Capacity - BusyMemory;
+                    if (availableSpace > 0) // Проверяем, что деление будет корректным
+                    {
+                        Random rn = new Random();
+                        int randomValue = rn.Next(0, availableSpace / 10);
+                        CacheMemory += randomValue;
+                        BusyMemory += randomValue;
+                    }
+                }
+            }
+        }
+
+
+        public void FileDelete(int capacityFile)
+        {
+            if (capacityFile <= BusyMemory)
+            {
+                BusyMemory -= capacityFile;
+                if (BusyMemory > 0 && CacheMemory > 0)
+                {
+                    Random rn = new Random();
+                    int cache = rn.Next(0, BusyMemory / 10);
+                    CacheMemory -= cache;
+                    BusyMemory -= cache;
+                }
+            }
+        }
+
+        public void CleanCache() // Метод очистки кеша на устройстве
+        {
+            BusyMemory -= CacheMemory;
+            CacheMemory = 0;
+        }
     }
 
     // Класс для жесткого диска (HDD)
     // Класс для жесткого диска (HDD)
-    public class HDD : Device
+    public class HDD : Device, IMemoryDevice
     {
         public int Capacity { get; set; } // Объем в ГБ
         public string Type { get; set; } // Тип (например, SSD или HDD)
         public int RotationSpeed { get; set; } // Скорость вращения в об/мин
         public string Interface { get; set; } // Интерфейс (например, SATA, NVMe)
         public string WarrantyPeriod { get; set; } // Гарантийный срок
+        public int BusyMemory { get; set; }
+        public int CacheMemory { get; set; }
 
         // Нестатический конструктор
         public HDD(string brand, string model, int capacity, string type, int rotationSpeed, string interfaceType,
@@ -311,6 +359,9 @@ namespace LibraryForForm48
             Condition = condition;
             SerialNumber = serialNumber;
             WarrantyPeriod = warrantyPeriod;
+            Random rn = new Random();
+            CacheMemory = rn.Next(0, Capacity / 10);
+            BusyMemory = CacheMemory;
         }
 
         // Конструктор без параметров
@@ -327,6 +378,47 @@ namespace LibraryForForm48
         public override string ToString()
         {
             return GetInfo();
+        }
+
+        public void FileSaving(int capacityFile) // Метод сохранения файла на устройство
+        {
+            if (BusyMemory < Capacity && Capacity - BusyMemory >= capacityFile)
+            {
+                BusyMemory += capacityFile;
+                if (BusyMemory < Capacity)
+                {
+                    int availableSpace = Capacity - BusyMemory;
+                    if (availableSpace > 0) // Проверяем, что деление будет корректным
+                    {
+                        Random rn = new Random();
+                        int randomValue = rn.Next(0, availableSpace / 10);
+                        CacheMemory += randomValue;
+                        BusyMemory += randomValue;
+                    }
+                }
+            }
+        }
+
+
+        public void FileDelete(int capacityFile)
+        {
+            if (capacityFile <= BusyMemory)
+            {
+                BusyMemory -= capacityFile;
+                if (BusyMemory > 0 && CacheMemory > 0)
+                {
+                    Random rn = new Random();
+                    int cache = rn.Next(0, BusyMemory / 10);
+                    CacheMemory -= cache;
+                    BusyMemory -= cache;
+                }
+            }
+        }
+
+        public void CleanCache() // Метод очистки кеша на устройстве
+        {
+            BusyMemory -= CacheMemory;
+            CacheMemory = 0;
         }
     }
 
@@ -446,9 +538,7 @@ namespace LibraryForForm48
     public class Cooler : Device
     {
         public string Manufacturer { get; set; }
-        public string Model { get; set; }
-        public string DisplayName { get; set; }
-        public string SerialNumber { get; set; }
+
 
         // Устройства, влияющие на мощность кулера
         public CPU Cpu { get; set; }
@@ -456,11 +546,10 @@ namespace LibraryForForm48
         public RAM Ram { get; set; }
 
         // Конструктор, в который передаются устройства для расчета мощности
-        public Cooler(string manufacturer, string model, string displayName, string serialNumber, CPU cpu, GPU gpu, RAM ram)
+        public Cooler(string manufacturer, string model, string serialNumber, CPU cpu, GPU gpu, RAM ram)
         {
             Manufacturer = manufacturer;
             Model = model;
-            DisplayName = displayName;
             SerialNumber = serialNumber;
             Cpu = cpu;
             Gpu = gpu;
@@ -515,9 +604,6 @@ namespace LibraryForForm48
             return GetInfo();
         }
     }
-
-
-
 
 
 }
